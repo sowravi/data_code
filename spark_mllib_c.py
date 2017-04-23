@@ -40,7 +40,7 @@ def tokenize(text):
 
 
 import os
-os.environ["SPARK_HOME"] = "/home/sowmya/spark-2.1.0-bin-hadoop2.7"
+os.environ["SPARK_HOME"] = "/opt/spark"
 
 def f(x):
     d = {}
@@ -57,7 +57,7 @@ sqlc = SQLContext(sc)
 # Import full dataset of newsgroup posts as text file
 #data_raw = sc.textFile('/home/sowmya/Documents/tweets-1.txt')
 
-users_df = sqlc.read.json('/home/sowmya/Documents/WorldTweets-1.txt')
+users_df = sqlc.read.json('/git/data_code/WorldTweets-1.txt')
 
 # Parse JSON entries in dataset
 #data = data_raw.map(lambda line: json.loads(json.dumps(line)))

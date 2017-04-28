@@ -31,19 +31,6 @@ def tokenize(text):
     tokens = word_tokenize(text)
     lowercased = [t.lower() for t in tokens]
     no_punctuation = []
-    for word in lowercased:
-        punct_removed = ''.join([letter for letter in word if not letter in PUNCTUATION])
-        no_punctuation.append(punct_removed)
-    no_stopwords = [w for w in no_punctuation if not w in STOPWORDS]
-    stemmed = [STEMMER.stem(w) for w in no_stopwords]
-    return [w for w in stemmed if w]
-
-
-import os
-os.environ["SPARK_HOME"] = "/opt/spark"
-
-def f(x):
-    d = {}
     for i in range(len(x)):
         d[str(i)] = x[i]
     return d
@@ -62,6 +49,7 @@ users_df = sqlc.read.json('file:///git/data_code/WorldTweets-1.txt')
 # Parse JSON entries in dataset
 #data = data_raw.map(lambda line: json.loads(json.dumps(line)))
 #unicoded = data.map(lambda line: line.encode("utf-8"))
+
 
 # Extract relevant fields in dataset -- category label and text content
 data_pared = users_df.select('text')
@@ -85,8 +73,7 @@ data_cleaned = remove_nonascii.map(lambda text: tokenize(text))
 htf = HashingTF(50000)
 
 # Create an RDD of LabeledPoints using category labels as labels and tokenized, hashed text as feature vectors
-
-data_hashed = data_cleaned.map(lambda text: htf.transform(text))
+data_hashed = data_cleaned.map(lambda text: htf.transform(text)).cache()
 
 # Split data 70/30 into training and test data sets
 cnt = data_hashed.count()
@@ -97,8 +84,6 @@ for i in range (cnt):
     label.append(random.randrange(-1,1,1))
 label_rdd = sc.parallelize(label)
 
-
-data_hashed.collect()
 label_rdd.collect()
 
 # Get number of Partitions
@@ -108,9 +93,8 @@ data_hashed.getNumPartitions()
 #Zip the two data sets
 label_rdd_1 = label_rdd.zipWithIndex().map(lambda (a,b): (b,a))
 data_hashed_1 =data_hashed.zipWithIndex().map(lambda (a,b): (b,a))
-merged_hash = label_rdd_1.join(data_hashed_1)
+merged_hash = label_rdd_1.join(data_hashed_1).cache()
 
-print merged_hash.collect()
 
 data_labelled = merged_hash.map(lambda (a,b): b)
 
@@ -132,7 +116,6 @@ model = NaiveBayes.train(train_hashed)
 prediction_and_labels = test_hashed.map(lambda point: (model.predict(point.features), point.label))
 
 # Filter to only correct predictions
-
 correct = prediction_and_labels.filter(lambda (predicted, actual): predicted == actual)
 
 # Calculate and print accuracy rate
@@ -142,10 +125,10 @@ print prediction_and_labels.collect()
 
 print "Classifier correctly predicted category " + str(accuracy * 100) + " percent of the time"
 
-prediction_and_labels.saveAsTextFile("file:///home/test_result/output")
+prediction_and_labels.saveAsTextFile("/user/cc/output")
 
 # Save Model  output
-output_dir = 'file:///home/test_result/output/naiveBayes'
+output_dir = '/user/cc/naiveBayes'
 shutil.rmtree(output_dir, ignore_errors=True)
 model.save(sc, output_dir)
 

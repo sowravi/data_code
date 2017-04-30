@@ -31,9 +31,22 @@ def tokenize(text):
     tokens = word_tokenize(text)
     lowercased = [t.lower() for t in tokens]
     no_punctuation = []
+    for word in lowercased:
+        punct_removed = ''.join([letter for letter in word if not letter in PUNCTUATION])
+        no_punctuation.append(punct_removed)
+    no_stopwords = [w for w in no_punctuation if not w in STOPWORDS]
+    stemmed = [STEMMER.stem(w) for w in no_stopwords]
+    return [w for w in stemmed if w]
+
+import os
+os.environ["SPARK_HOME"] = "/opt/spark-1.6.0-bin-hadoop2.6"
+
+def f(x):
+    d = {}
     for i in range(len(x)):
         d[str(i)] = x[i]
     return d
+
 
 # Initialize a SparkContext
 sc = SparkContext()
